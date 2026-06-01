@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Assistant - 智能求职助手</title>
+    
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-gradient">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-robot me-2"></i>
+                <span>AI Job Assistant</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">
+                            <i class="fas fa-home me-1"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-question-circle me-1"></i> 使用帮助
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-briefcase text-primary"></i> AI智能求职助手
+                </h1>
+                <p class="lead text-muted">
+                    上传您的简历，AI将为您提供专业的简历评分、岗位推荐和面试题生成
+                </p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-lg">
+                    <div class="card-body p-5">
+                        <h3 class="card-title text-center mb-4">
+                            <i class="fas fa-file-pdf text-danger me-2"></i> 上传您的简历
+                        </h3>
+                        
+                        <form id="uploadForm">
+                            <div class="upload-area mb-4" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                <h5>拖拽PDF文件到这里</h5>
+                                <p class="text-muted mb-3">或者点击下方按钮选择文件</p>
+                                
+                                <input type="file" id="resumeFile" accept=".pdf" class="d-none">
+                                <label for="resumeFile" class="btn btn-outline-primary">
+                                    <i class="fas fa-folder-open me-2"></i> 选择PDF文件
+                                </label>
+                                
+                                <div id="fileName" class="mt-3 text-success fw-bold"></div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-gradient btn-lg" id="analyzeBtn" disabled>
+                                    <i class="fas fa-magic me-2"></i> 开始分析
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="resultArea" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-5" id="parseResultArea" style="display: none;">
+            <div class="col-lg-10">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i> 简历解析结果
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="resumeContent" class="bg-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word; max-height: 500px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-5" id="scoreResultArea" style="display: none;">
+            <div class="col-lg-10">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <h5 class="mb-0">
+                            <i class="fas fa-star me-2"></i> AI简历评分
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-5">
+                            <h3 class="mb-3">综合评分</h3>
+                            <div class="display-1 fw-bold text-primary" id="overallScore">0</div>
+                            <div class="progress mt-3" style="height: 20px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" id="overallProgress" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title text-muted">技能评分</h5>
+                                        <div class="display-4 fw-bold text-success" id="skillScore">0</div>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-success" id="skillProgress" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title text-muted">项目评分</h5>
+                                        <div class="display-4 fw-bold text-info" id="projectScore">0</div>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-info" id="projectProgress" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title text-muted">竞争力评分</h5>
+                                        <div class="display-4 fw-bold text-warning" id="competitivenessScore">0</div>
+                                        <div class="progress mt-2">
+                                            <div class="progress-bar bg-warning" id="competitivenessProgress" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-thumbs-up me-2"></i> 优点</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush" id="advantagesList">
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0"><i class="fas fa-thumbs-down me-2"></i> 缺点</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush" id="disadvantagesList">
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i> 优化建议</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush" id="suggestionsList">
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-5" id="recommendResultArea" style="display: none;">
+            <div class="col-lg-10">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i> 为您推荐的岗位
+                        </h5>
+                    </div>
+                    <div class="card-body" id="jobsContainer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5 g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">智能简历评分</h5>
+                        <p class="card-text text-muted">
+                            从技能、项目、竞争力等多个维度对您的简历进行全面评分
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-briefcase fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">精准岗位推荐</h5>
+                        <p class="card-text text-muted">
+                            基于RAG技术，为您匹配最适合的岗位并指出缺失技能
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-question-circle fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">面试题生成</h5>
+                        <p class="card-text text-muted">
+                            根据目标岗位自动生成专业面试题并提供参考答案
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">© 2026 AI Job Assistant. 基于FastAPI和DeepSeek构建</p>
+        </div>
+    </footer>
+
+    <!-- AI面试题展示区域 -->
+    <div class="row justify-content-center mt-5 d-none" id="interviewBox">
+        <div class="col-lg-10">
+            <div class="card shadow-lg">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0" id="interviewJobTitle">岗位面试题库</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">一、基础入门面试题</h6>
+                    <div id="baseQues"></div>
+
+                    <hr>
+                    <h6 class="text-success">二、进阶实操面试题</h6>
+                    <div id="seniorQues"></div>
+
+                    <hr>
+                    <h6 class="text-danger">三、项目场景面试题</h6>
+                    <div id="projectQues"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let globalResumeText = '';
+        const uploadArea = document.getElementById('uploadArea');
+        const resumeFile = document.getElementById('resumeFile');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const resultArea = document.getElementById('resultArea');
+        const parseResultArea = document.getElementById('parseResultArea');
+        const resumeContent = document.getElementById('resumeContent');
+        const scoreResultArea = document.getElementById('scoreResultArea');
+        const recommendResultArea = document.getElementById('recommendResultArea');
+        const jobsContainer = document.getElementById('jobsContainer');
+
+        let isUploading = false;
+
+        uploadArea.addEventListener('click', (e) => {
+            if(e.target.closest('label') || e.target.closest('input')) return;
+            resumeFile.click();
+        });
+
+        resumeFile.addEventListener('change', e => {
+            let file = e.target.files[0];
+            if(!file) return;
+            if(!file.name.endsWith('.pdf')){
+                alert('只支持PDF简历');
+                resumeFile.value = '';
+                return;
+            }
+            fileName.innerText = '已选择：' + file.name;
+            analyzeBtn.disabled = false;
+        });
+
+        uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('dragover')});
+        uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop',e=>{
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            let file = e.dataTransfer.files[0];
+            if(!file.name.endsWith('.pdf')){alert('只支持PDF');return;}
+            resumeFile.files = e.dataTransfer.files;
+            fileName.innerText = '已选择：' + file.name;
+            analyzeBtn.disabled = false;
+        });
+
+        uploadForm.addEventListener('submit',async e=>{
+            e.preventDefault();
+            if(isUploading)return;
+            let file = resumeFile.files[0];
+            if(!file)return;
+
+            isUploading = true;
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+            resultArea.innerHTML = '';
+
+            try{
+                let fd = new FormData();
+                fd.append('file',file);
+                let upRes = await fetch('/api/upload',{method:'POST',body:fd});
+                let upData = await upRes.json();
+                if(!upData.success)throw upData.message;
+
+                analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 解析中...';
+                let parseRes = await fetch('/api/parse',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({saved_filename:upData.saved_filename})
+                });
+                let parseData = await parseRes.json();
+                if(!parseData.success)throw parseData.message;
+                
+                parseResultArea.style.display = 'block';
+                resumeContent.innerText = parseData.content;
+                globalResumeText = parseData.content;
+
+                analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI评分中...';
+                let scoreRes = await fetch('/api/analyze',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({resume_content:parseData.content})
+                });
+                let scoreData = await scoreRes.json();
+                if(!scoreData.success)throw scoreData.message;
+                scoreResultArea.style.display = 'block';
+                let ana = scoreData.analysis;
+
+                document.getElementById('overallScore').innerText = ana.overall_score;
+                document.getElementById('overallProgress').style.width = ana.overall_score+'%';
+                document.getElementById('skillScore').innerText = ana.skill_score;
+                document.getElementById('skillProgress').style.width = ana.skill_score+'%';
+                document.getElementById('projectScore').innerText = ana.project_score;
+                document.getElementById('projectProgress').style.width = ana.project_score+'%';
+                document.getElementById('competitivenessScore').innerText = ana.competitiveness_score;
+                document.getElementById('competitivenessProgress').style.width = ana.competitiveness_score+'%';
+
+                const fillList=(id,arr)=>{
+                    let el=document.getElementById(id);el.innerHTML='';
+                    arr.forEach(txt=>{let li=document.createElement('li');li.className='list-group-item';li.innerText=txt;el.appendChild(li);})
+                }
+                fillList('advantagesList',ana.advantages);
+                fillList('disadvantagesList',ana.disadvantages);
+                fillList('suggestionsList',ana.suggestions);
+
+                analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 岗位推荐中...';
+                let recRes = await fetch('/api/recommend',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({resume_content:parseData.content})
+                });
+                let recData = await recRes.json();
+                if(!recData.success)throw recData.message;
+                recommendResultArea.style.display='block';
+                jobsContainer.innerHTML='';
+
+                recData.jobs.forEach(job=>{
+                    let lv=job.match_analysis.match_level;
+                    let c=lv==='高'?'text-success':lv==='中'?'text-warning':'text-danger';
+                    jobsContainer.innerHTML+=`
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h5>${job.title} <span class="${c}">匹配${job.similarity_score}%</span></h5>
+                            <p class="text-muted">${job.company} | ${job.location} | ${job.salary}</p>
+                            <p><b>匹配技能：</b>${job.match_analysis.matched_skills.join('、')}</p>
+                            <p><b>欠缺技能：</b>${job.match_analysis.missing_skills.join('、')}</p>
+                            <p><b>提升建议：</b>${job.match_analysis.improvement_suggestions.join('、')}</p>
+                            <button class="btn btn-primary btn-sm genInterviewBtn" data-job="${job.title}">
+                                📝 生成该岗位面试题
+                            </button>
+                        </div>
+                    </div>
+                    `
+                })
+
+                resultArea.innerHTML = `<div class="alert alert-success">✅ 全部分析完成！</div>`;
+            }catch(err){
+                resultArea.innerHTML = `<div class="alert alert-danger">❌ ${err}</div>`;
+                parseResultArea.style.display='none';
+                scoreResultArea.style.display='none';
+                recommendResultArea.style.display='none';
+            }finally{
+                isUploading=false;
+                analyzeBtn.disabled=false;
+                analyzeBtn.innerHTML='<i class="fas fa-magic"></i> 开始分析';
+                resumeFile.value='';
+                fileName.innerText='';
+            }
+        })
+
+        document.addEventListener('click',async function(e){
+            if(e.target.classList.contains('genInterviewBtn')){
+                let jobName = e.target.dataset.job;
+                if(!globalResumeText){
+                    alert("请先上传并解析简历！");
+                    return;
+                }
+                e.target.innerText = "正在生成题库...";
+                e.target.disabled = true;
+
+                try{
+                    let res = await fetch("/api/interview",{
+                        method:"POST",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify({
+                            resume_content:globalResumeText,
+                            job_title:jobName
+                        })
+                    })
+                    let data = await res.json();
+                    if(!data.success) throw data.message;
+                    let info = data.interview;
+
+                    document.getElementById("interviewJobTitle").innerText = `${info.job_name} 专属面试题库`;
+                    document.getElementById("baseQues").innerHTML = "";
+                    document.getElementById("seniorQues").innerHTML = "";
+                    document.getElementById("projectQues").innerHTML = "";
+
+                    info.base_questions.forEach((item,idx)=>{
+                        document.getElementById("baseQues").innerHTML += `
+                        <div class="mb-2">
+                            <p><b>${idx+1}.${item.question}</b></p>
+                            <p class="text-secondary">参考答案：${item.answer}</p>
+                        </div>
+                        `
+                    })
+                    info.senior_questions.forEach((item,idx)=>{
+                        document.getElementById("seniorQues").innerHTML += `
+                        <div class="mb-2">
+                            <p><b>${idx+1}.${item.question}</b></p>
+                            <p class="text-secondary">参考答案：${item.answer}</p>
+                        </div>
+                        `
+                    })
+                    info.project_questions.forEach((item,idx)=>{
+                        document.getElementById("projectQues").innerHTML += `
+                        <div class="mb-2">
+                            <p><b>${idx+1}.${item.question}</b></p>
+                            <p class="text-secondary">答题思路：${item.answer}</p>
+                        </div>
+                        `
+                    })
+
+                    document.getElementById("interviewBox").classList.remove("d-none");
+                    document.getElementById("interviewBox").scrollIntoView({behavior:"smooth"});
+                }catch(err){
+                    alert("生成失败："+err);
+                }finally{
+                    e.target.innerText = "📝 生成该岗位面试题";
+                    e.target.disabled = false;
+                }
+            }
+        })
+    </script>
+</body>
+</html>
